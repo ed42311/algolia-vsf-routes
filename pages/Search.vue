@@ -39,17 +39,29 @@ const searchClient = algoliasearch(
 );
 
 function nuxtRouter(vueRouter) {
+  let writeTimer = null;
+  let removeAfterEachListener = null;
+  let popStateListener = null;
+
   return {
     read() {
       return vueRouter.currentRoute.query;
     },
     write(routeState) {
+      // Only push a new entry if the URL changed (avoid duplicated entries in the history)
       if (this.createURL(routeState) === this.createURL(this.read())) {
         return;
       }
-      vueRouter.push({
-        query: routeState,
-      });
+
+      if (writeTimer) clearTimeout(writeTimer);
+
+      writeTimer = setTimeout(
+        () =>
+          vueRouter.push({
+            query: routeState,
+          }),
+        400
+      );
     },
     createURL(routeState) {
       return vueRouter.resolve({
@@ -57,22 +69,25 @@ function nuxtRouter(vueRouter) {
       }).href;
     },
     onUpdate(cb) {
+      removeAfterEachListener = vueRouter.afterEach((to, from) => {
+        cb(to.query);
+      });
+
       if (typeof window === "undefined") return;
 
-      this._onPopState = (event) => {
-        const routeState = event.state;
-        if (!routeState) {
-          cb(this.read());
-        } else {
-          cb(routeState);
-        }
+      popStateListener = () => {
+        cb(this.read());
       };
-      window.addEventListener("popstate", this._onPopState);
+      window.addEventListener("popstate", popStateListener);
     },
     dispose() {
+      if (writeTimer) clearTimeout(writeTimer);
+
+      if (removeAfterEachListener) removeAfterEachListener();
+
       if (typeof window === "undefined") return;
 
-      window.removeEventListener("popstate", this._onPopState);
+      window.removeEventListener("popstate", popStateListener);
     },
   };
 }
