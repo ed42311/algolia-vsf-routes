@@ -8,8 +8,8 @@
     </LazyHydrate>
 
     <div id="layout">
-      <nuxt :key="$route.fullPath"/>
-
+      <div v-if="String($route.name) === 'Search___en'"><search/></div>
+      <div v-else ><nuxt :key="$route.fullPath"/></div>
       <LazyHydrate when-visible>
         <BottomNavigation />
       </LazyHydrate>
@@ -34,6 +34,7 @@ import WishlistSidebar from '~/components/WishlistSidebar.vue';
 import LoginModal from '~/components/LoginModal.vue';
 import LazyHydrate from 'vue-lazy-hydration';
 import Notification from '~/components/Notification';
+import Search from '~/pages/Search';
 
 export default {
   components: {
@@ -45,8 +46,9 @@ export default {
     CartSidebar,
     WishlistSidebar,
     LoginModal,
-    Notification
-  }
+    Notification,
+    Search
+  },
 };
 </script>
 
