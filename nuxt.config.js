@@ -47,7 +47,14 @@ export default {
       } else {
         return { x: 0, y: 0 };
       }
-    }
+    },
+    parseQuery(queryString) {
+      return require('qs').parse(queryString);
+    },
+    stringifyQuery(object) {
+      var queryString = require('qs').stringify(object);
+      return queryString ? '?' + queryString : '';
+    },
   },
   buildModules: [
     // to core
@@ -161,13 +168,4 @@ export default {
       })
     ]
   },
-  router: {
-    parseQuery(queryString) {
-      return require('qs').parse(queryString);
-    },
-    stringifyQuery(object) {
-      var queryString = require('qs').stringify(object);
-      return queryString ? '?' + queryString : '';
-    },
-  }
 };
