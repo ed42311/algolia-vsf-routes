@@ -8,7 +8,7 @@
     </LazyHydrate>
 
     <div id="layout">
-      <div v-if="String($route.name) === 'Search___en'"><search/></div>
+      <div v-if="String($route.name) === 'Search___en'" key="search"><search/></div>
       <div v-else ><nuxt :key="$route.fullPath"/></div>
       <LazyHydrate when-visible>
         <BottomNavigation />

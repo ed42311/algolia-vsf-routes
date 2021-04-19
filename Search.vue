@@ -1,106 +1,31 @@
 <template>
   <ais-instant-search-ssr>
-    <ais-configure :hits-per-page.camel="100"/>
     <ais-search-box />
-    <div class="navbar section">
-      <div class="navbar__aside desktop-only">
-        <SfHeading :level="3" title="Search" class="navbar__title" />
+    <client-only>
+      <ais-powered-by />
+    </client-only>
+
+    <ais-hits>
+      <div slot="item" slot-scope="{ item }">
+        <!-- show name -->
+        <h2><ais-highlight attribute="name" :hit="item"/></h2>
+        <!-- show content -->
+        <div>{{ item.content }}</div>
+        <!-- show content with highlight -->
+        <div><ais-highlight attribute="content" :hit="item"/></div>
+        <!-- show content with snippet: need to setup Snipetting in Indices -->
+        <div><ais-snippet attribute="content" :hit="item"/></div>
       </div>
-      <div class="navbar__main">
-        <SfButton
-          data-cy="category-btn_filters"
-          class="sf-button--text navbar__filters-button"
-          aria-label="Filters"
-          @click="toggleFilterSidebar"
-        >
-          <SfIcon
-            size="18px"
-            color="dark-secondary"
-            icon="filter"
-            class="navbar__filters-icon"
-            data-cy="category-icon_"
-          />
-          Filters
-        </SfButton>
-        <div class="navbar__sort desktop-only">
-          <span class="navbar__label">Sort by:</span>
-          <ais-sort-by
-            :items="[
-              { value: 'instant_search', label: 'Featured' },
-              { value: 'instant_search_price_asc', label: 'Price asc.' },
-              { value: 'instant_search_price_desc', label: 'Price desc.' },
-            ]"
-          />
-        </div>
-        <div class="navbar__counter">
-            <span class="navbar__label desktop-only"
-              >Products found:
-            </span>
-            <span class="desktop-only">{{ nbHits }}</span>
-            <span class="navbar__label smartphone-only"
-              >{{ nbHits }} Items</span
-            >
-        </div>
-        <div class="navbar__view">
-          <span class="navbar__view-label desktop-only">{{ $t('View') }}</span>
-          <SfIcon
-            data-cy="category-icon_grid-view"
-            class="navbar__view-icon"
-            :color="isCategoryGridView ? 'black' : 'dark-secondary'"
-            icon="tiles"
-            size="12px"
-            role="button"
-            aria-label="Change to grid view"
-            :aria-pressed="isCategoryGridView"
-            @click="toggleCategoryGridView"
-          />
-          <SfIcon
-            data-cy="category-icon_list-view"
-            class="navbar__view-icon"
-            :color="!isCategoryGridView ? 'black' : 'dark-secondary'"
-            icon="list"
-            size="12px"
-            role="button"
-            aria-label="Change to list view"
-            :aria-pressed="!isCategoryGridView"
-            @click="toggleCategoryGridView"
-          />
-        </div>
-      </div>
-    </div>
-    <div class="main section">
-      <div class="sidebar desktop-only">
-        <ais-refinement-list attribute="brand" />
-      </div>
-      <div class="products">
-        <ais-stats>
-          <template slot-scope="{ results: { nbHits, query } }"> 
-            <h1>
-              <span v-if="nbHits === 0"><small>No Products Found</small></span>
-              <span v-else><small>Search results for:</small> {{ query }}</span>
-            </h1>
-          </template>
-        </ais-stats>
-        <ais-hits>
-          <template slot="item" slot-scope="{ item }">
-            <p>
-              <ais-highlight attribute="name" :hit="item" />
-            </p>
-            <p>
-              <ais-highlight attribute="brand" :hit="item" />
-            </p>
-            <img :src="item.image" class="ais-Hit-img" />
-          </template>
-        </ais-hits>
-        <ais-pagination />
-      </div>
-    </div>
-    <SfSidebar
-      :visible="isFilterSidebarOpen"
-      title="Filters"
-      @close="toggleFilterSidebar"
-    >
-    </SfSidebar>
+    </ais-hits>
+
+    <ais-state-results>
+      <template slot-scope="{ state: { query }, results: { hits, nbPages } }">
+        <div v-if="query && hits.length == 0">No results</div>
+        <div v-else></div>
+
+        <ais-pagination v-if="nbPages > 0"/>
+      </template>
+    </ais-state-results>
   </ais-instant-search-ssr>
 </template>
 
@@ -123,19 +48,22 @@ import {
 } from '@storefront-ui/vue';
 import {
   AisInstantSearchSsr,
+  AisStateResults,
+  AisIndex,
+  AisConfigure,
+  AisRefinementList,
   AisHits,
-  AisSortBy,
   AisHighlight,
   AisSearchBox,
+  AisStats,
   AisPagination,
-  AisSnippet,
-  AisStateResults,
-  AisPoweredBy,
-  createServerRootMixin,
-} from 'vue-instantsearch'
+  AisSortBy,
+  createServerRootMixin
+} from "vue-instantsearch"; // eslint-disable-line import/no-unresolved
+import AppLoadingIndicator from "~/components/Search/LoadingIndicator"
 
 // Libraries
-// import { useUiState } from '~/composables';
+import { useUiState } from '~/composables';
 import algoliasearch from "algoliasearch/lite";
 import "instantsearch.css/themes/algolia-min.css";
 
@@ -147,7 +75,6 @@ const algoliaClient = algoliasearch(
 );
 
 // to disable listing on load
-// Props to: https://code.luasoftware.com/tutorials/algolia/setup-algolia-instantsearch-on-nuxt-with-query-url/
 const searchClient = {
   search(requests) {
     if (requests.every(({ params }) => !params.query)) {
@@ -166,7 +93,6 @@ const searchClient = {
 };
 
 // remove indexName
-// Props to: https://code.luasoftware.com/tutorials/algolia/setup-algolia-instantsearch-on-nuxt-with-query-url/
 function writeState(routeState) {
   if (indexName in routeState)
     routeState = routeState[indexName]
@@ -175,7 +101,6 @@ function writeState(routeState) {
 }
 
 // restore indexName
-// Props to: https://code.luasoftware.com/tutorials/algolia/setup-algolia-instantsearch-on-nuxt-with-query-url/
 function readState(routeState) {
   routeState = {
     [indexName]: routeState
@@ -184,54 +109,65 @@ function readState(routeState) {
 }
 
 function nuxtRouter(vueRouter) {
+  let writeTimer = null;
+  let removeAfterEachListener = null;
+  let popStateListener = null;
+
   return {
     read() {
-      return readState(vueRouter.currentRoute.query);
+      return readState(vueRouter.currentRoute.query);;
     },
     write(routeState) {
-      routeState = writeState(routeState)
-      vueRouter.push({
-        query: routeState,
-      });
+      // Only push a new entry if the URL changed (avoid duplicated entries in the history)
+      if (this.createURL(routeState) === this.createURL(this.read())) {
+        return;
+      }
+
+      if (writeTimer) clearTimeout(writeTimer);
+
+      writeTimer = setTimeout(
+        () =>
+          vueRouter.push({
+            query: writeState(routeState),
+          }),
+        400
+      );
     },
     createURL(routeState) {
-      routeState = writeState(routeState)
       const url = vueRouter.resolve({
-        query: routeState,
+        query: writeState(routeState),
       }).href;
       return url
     },
     onUpdate(cb) {
-      if (typeof window === 'undefined') return;
+      removeAfterEachListener = vueRouter.afterEach((to, from) => {
+        cb(to.query);
+      });
 
-      this._onPopState = event => {
-        const routeState = event.state;
-        if (!routeState) {
-          cb(this.read());
-        } else {
-          cb(routeState);
-        }
+      if (typeof window === "undefined") return;
+
+      popStateListener = () => {
+        cb(this.read());
       };
-      window.addEventListener('popstate', this._onPopState);
+      window.addEventListener("popstate", popStateListener);
     },
     dispose() {
-      if (typeof window === 'undefined') return;
+      if (writeTimer) clearTimeout(writeTimer);
 
-      window.removeEventListener('popstate', this._onPopState);
+      if (removeAfterEachListener) removeAfterEachListener();
+
+      if (typeof window === "undefined") return;
+
+      window.removeEventListener("popstate", popStateListener);
     },
   };
 }
 
-
 export default {
-  serverPrefetch() {
-    return this.instantsearch.findResultsState(this).then(algoliaState => {
-      this.$ssrContext.nuxt.algoliaState = algoliaState;
-    });
-  },
-  beforeMount() {
-    const results = this.$nuxt.context.nuxtState.algoliaState || window.__NUXT__.algoliaState;
-    this.instantsearch.hydrate(results);
+  provide() {
+    return {
+      $_ais_ssrInstantSearchInstance: this.instantsearch,
+    };
   },
   data() {
     const mixin = createServerRootMixin({
@@ -239,42 +175,62 @@ export default {
       indexName,
       routing: {
         router: nuxtRouter(this.$router),
-      }
-    })
+      },
+    });
+
     return {
       ...mixin.data(),
-    };     
-  },
-  provide() {
-    return {
-      $_ais_ssrInstantSearchInstance: this.instantsearch,
     };
+  },
+  serverPrefetch() {
+    return this.instantsearch.findResultsState(this).then(algoliaState => {
+      this.$ssrContext.nuxt.algoliaState = algoliaState;
+    });
+  },
+  beforeMount() {
+    const results =
+      (this.$nuxt.context && this.$nuxt.context.nuxtState.algoliaState) ||
+      window.__NUXT__.algoliaState;
+
+    this.instantsearch.hydrate(results);
+
+    delete this.$nuxt.context.nuxtState.algoliaState;
+    delete window.__NUXT__.algoliaState;
+  },
+  setup() {
+    const uiState = useUiState();
+    return {
+      ...uiState
+    }
   },
   components: {
     AisInstantSearchSsr,
+    AisIndex,
+    AisConfigure,
+    AisRefinementList,
     AisHits,
     AisHighlight,
     AisSearchBox,
-    AisPagination,
-    AisSnippet,
+    AisStats,
     AisSortBy,
+    AisPagination,
     AisStateResults,
-    AisPoweredBy,
-    SfSidebar,
     SfButton,
-    SfList,
+    SfSidebar,
     SfIcon,
-    SfHeading,
-    SfMenuItem,
+    SfList,
     SfProductCard,
     SfProductCardHorizontal,
     SfPagination,
+    SfMenuItem,
     SfAccordion,
     SfSelect,
     SfBreadcrumbs,
     SfLoader,
+    SfHeading,
     SfNotification,
-  },
+    AppLoadingIndicator
+  }
 };
 </script>
 
@@ -519,22 +475,16 @@ export default {
     width: 100vw;
   }
 }
-.ais-SearchBox {
-  margin-bottom: 1em;
-}
 
-.ais-Hits-item {
+.ais-Hit-img {
   width: 100%;
-  border: none;
-  box-shadow: none;
-
 }
 
-.ais-Highlight {
-  font-size: inherit;
+.ais-Hits-list:empty {
+  margin: 0;
 }
 
-.ais-Highlight-highlighted {
-  font-size: inherit;
+.ais-InstantSearch {
+  margin: 1em;
 }
 </style>
