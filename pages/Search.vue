@@ -32,14 +32,22 @@
             ]"
           />
         </div>
-        <div class="navbar__counter">
-            <span class="navbar__label desktop-only"
-              >Products found:
-            </span>
-            <span class="desktop-only">{{ nbHits }}</span>
-            <span class="navbar__label smartphone-only"
-              >{{ nbHits }} Items</span
-            >
+        <div data-cy="algolia_hits-counter" class="navbar__counter">
+          <ais-stats>
+            <template slot-scope="{ nbHits }">
+              <span class="navbar__label desktop-only">Products found: </span>
+              <span
+                data-cy="algolia_hits-counter-text--desktop"
+                class="desktop-only"
+                >{{ nbHits }}</span
+              >
+              <span
+                data-cy="algolia_hits-counter-text--mobile"
+                class="navbar__label smartphone-only"
+                >{{ nbHits }} Items</span
+              >
+            </template>
+          </ais-stats>
         </div>
         <div class="navbar__view">
           <span class="navbar__view-label desktop-only">{{ $t('View') }}</span>
@@ -70,27 +78,33 @@
     </div>
     <div class="main section">
       <div class="sidebar desktop-only">
-        <ais-refinement-list attribute="brand" />
+        <!-- <ais-refinement-list attribute="brand" /> -->
       </div>
       <div class="products">
         <ais-stats>
-          <template slot-scope="{ results: { nbHits, query } }"> 
-            <h1>
+          <template slot-scope="{ nbHits, query }">
+            <h1 data-cy="algolia_search-title">
               <span v-if="nbHits === 0"><small>No Products Found</small></span>
               <span v-else><small>Search results for:</small> {{ query }}</span>
             </h1>
           </template>
         </ais-stats>
-        <ais-hits>
-          <template slot="item" slot-scope="{ item }">
-            <p>
-              <ais-highlight attribute="name" :hit="item" />
-            </p>
-            <p>
-              <ais-highlight attribute="brand" :hit="item" />
-            </p>
-            <img :src="item.image" class="ais-Hit-img" />
-          </template>
+          <ais-hits
+          :class-names="{ 'ais-Hits-item': 'override_Hits-item' }"
+        >
+          <div slot="item" slot-scope="{ item }">
+            <LazyHydrate when-idle>
+              <SfProductCard
+                data-cy="category-product-card"
+                :key="item.objectID"
+                :title="item.name"
+                :image="item.image"
+                :max-rating="5"
+                :isOnWishlist="false"
+                class="products__product-card"
+              />
+            </LazyHydrate>
+          </div>
         </ais-hits>
         <ais-pagination />
       </div>
@@ -100,6 +114,9 @@
       title="Filters"
       @close="toggleFilterSidebar"
     >
+      <template #default>
+        <ais-refinement-list attribute="brand" /> 
+      </template>
     </SfSidebar>
   </ais-instant-search-ssr>
 </template>
@@ -129,41 +146,23 @@ import {
   AisSearchBox,
   AisPagination,
   AisSnippet,
-  AisStateResults,
+  AisStats,
+  AisRefinementList,
   AisPoweredBy,
   createServerRootMixin,
 } from 'vue-instantsearch'
 
 // Libraries
-// import { useUiState } from '~/composables';
+import LazyHydrate from "vue-lazy-hydration";
+import { useUiState } from '~/composables';
 import algoliasearch from "algoliasearch/lite";
 import "instantsearch.css/themes/algolia-min.css";
 
 const indexName = 'instant_search'
-
-const algoliaClient = algoliasearch(
+const searchClient = algoliasearch(
   "latency",
   "6be0576ff61c053d5f9a3225e2a90f76"
 );
-
-// to disable listing on load
-// Props to: https://code.luasoftware.com/tutorials/algolia/setup-algolia-instantsearch-on-nuxt-with-query-url/
-const searchClient = {
-  search(requests) {
-    if (requests.every(({ params }) => !params.query)) {
-     return Promise.resolve({
-        results: requests.map(() => ({
-          hits: [],
-          nbHits: 0,
-          nbPages: 0,
-          processingTimeMS: 0,
-        })),
-      });
-    }
-
-    return algoliaClient.search(requests);
-  },
-};
 
 // remove indexName
 // Props to: https://code.luasoftware.com/tutorials/algolia/setup-algolia-instantsearch-on-nuxt-with-query-url/
@@ -189,17 +188,17 @@ function nuxtRouter(vueRouter) {
       return readState(vueRouter.currentRoute.query);
     },
     write(routeState) {
-      routeState = writeState(routeState)
+      if (this.createURL(routeState) === this.createURL(this.read())) {
+        return;
+      }
       vueRouter.push({
-        query: routeState,
+        query: writeState(routeState),
       });
     },
     createURL(routeState) {
-      routeState = writeState(routeState)
-      const url = vueRouter.resolve({
-        query: routeState,
+      return vueRouter.resolve({
+        query: writeState(routeState),
       }).href;
-      return url
     },
     onUpdate(cb) {
       if (typeof window === 'undefined') return;
@@ -250,6 +249,13 @@ export default {
       $_ais_ssrInstantSearchInstance: this.instantsearch,
     };
   },
+  setup(_, context) {
+    const uiState = useUiState();
+
+    return {
+      ...uiState,
+    };
+  },
   components: {
     AisInstantSearchSsr,
     AisHits,
@@ -258,7 +264,8 @@ export default {
     AisPagination,
     AisSnippet,
     AisSortBy,
-    AisStateResults,
+    AisStats,
+    AisRefinementList,
     AisPoweredBy,
     SfSidebar,
     SfButton,
@@ -274,12 +281,13 @@ export default {
     SfBreadcrumbs,
     SfLoader,
     SfNotification,
+    LazyHydrate,
   },
 };
 </script>
 
 <style lang="scss">
-@import '~@storefront-ui/vue/styles';
+@import "~@storefront-ui/vue/styles";
 #search {
   box-sizing: border-box;
   @include for-desktop {
@@ -519,22 +527,19 @@ export default {
     width: 100vw;
   }
 }
-.ais-SearchBox {
-  margin-bottom: 1em;
+
+.ais-Hits-list:empty {
+  margin: 0;
 }
 
 .ais-Hits-item {
-  width: 100%;
-  border: none;
-  box-shadow: none;
-
+  &.override_Hits-item {
+    border: none;
+    box-shadow: none;
+  }
 }
 
-.ais-Highlight {
-  font-size: inherit;
-}
-
-.ais-Highlight-highlighted {
-  font-size: inherit;
+.ais-InstantSearch {
+  margin: 1em;
 }
 </style>
