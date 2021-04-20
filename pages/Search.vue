@@ -78,7 +78,7 @@
     </div>
     <div class="main section">
       <div class="sidebar desktop-only">
-        <!-- <ais-refinement-list attribute="brand" /> -->
+        hello
       </div>
       <div class="products">
         <ais-stats>
@@ -115,7 +115,12 @@
       @close="toggleFilterSidebar"
     >
       <template #default>
-        <ais-refinement-list attribute="brand" /> 
+        <!-- <ul>
+          <li>
+            test
+          </li>
+        </ul> -->
+        <ais-refinement-list attributes="brand" />
       </template>
     </SfSidebar>
   </ais-instant-search-ssr>
@@ -148,7 +153,6 @@ import {
   AisSnippet,
   AisStats,
   AisRefinementList,
-  AisPoweredBy,
   createServerRootMixin,
 } from 'vue-instantsearch'
 
@@ -253,6 +257,8 @@ export default {
     const uiState = useUiState();
 
     return {
+      AisSortBy,
+      AisRefinementList,
       ...uiState,
     };
   },
@@ -266,7 +272,6 @@ export default {
     AisSortBy,
     AisStats,
     AisRefinementList,
-    AisPoweredBy,
     SfSidebar,
     SfButton,
     SfList,
