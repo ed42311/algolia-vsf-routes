@@ -2,7 +2,7 @@ import webpack from 'webpack';
 
 export default {
   server: {
-    port: 3001,
+    port: 3002,
     host: '0.0.0.0'
   },
   head: {
@@ -40,19 +40,20 @@ export default {
   loading: { color: '#fff' },
   router: {
     middleware: ['checkout'],
-    scrollBehavior (_to, _from, savedPosition) {
-      if (savedPosition) {
-        return savedPosition;
-      } else {
-        return { x: 0, y: 0 };
-      }
-    },
     parseQuery(queryString) {
       return require('qs').parse(queryString);
     },
     stringifyQuery(object) {
       var queryString = require('qs').stringify(object);
       return queryString ? '?' + queryString : '';
+    },
+    extendRoutes(routes) {
+      for (const route of routes) {
+        if (route.path.includes('/Search')) {
+          route.path = '/s';
+        }
+      }
+      return routes;
     },
   },
   buildModules: [
