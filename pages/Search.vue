@@ -1,7 +1,7 @@
 <template>
-  <ais-instant-search-ssr>
-    <ais-configure :hits-per-page.camel="100"/>
-    <ais-search-box />
+  <AisInstantSearchSsr>
+    <ais-configure :hits-per-page.camel="100" />
+    <AisSearchBox />
     <div class="navbar section">
       <div class="navbar__aside desktop-only">
         <SfHeading :level="3" title="Search" class="navbar__title" />
@@ -24,16 +24,16 @@
         </SfButton>
         <div class="navbar__sort desktop-only">
           <span class="navbar__label">Sort by:</span>
-          <ais-sort-by
+          <AisSortBy
             :items="[
               { value: 'instant_search', label: 'Featured' },
               { value: 'instant_search_price_asc', label: 'Price asc.' },
-              { value: 'instant_search_price_desc', label: 'Price desc.' },
+              { value: 'instant_search_price_desc', label: 'Price desc.' }
             ]"
           />
         </div>
         <div data-cy="algolia_hits-counter" class="navbar__counter">
-          <ais-stats>
+          <AisStats>
             <template slot-scope="{ nbHits }">
               <span class="navbar__label desktop-only">Products found: </span>
               <span
@@ -47,10 +47,10 @@
                 >{{ nbHits }} Items</span
               >
             </template>
-          </ais-stats>
+          </AisStats>
         </div>
         <div class="navbar__view">
-          <span class="navbar__view-label desktop-only">{{ $t('View') }}</span>
+          <span class="navbar__view-label desktop-only">{{ $t("View") }}</span>
           <SfIcon
             data-cy="category-icon_grid-view"
             class="navbar__view-icon"
@@ -77,36 +77,32 @@
       </div>
     </div>
     <div class="main section">
-      <div class="sidebar desktop-only">
-        hello
-      </div>
+      <div class="sidebar desktop-only">hello</div>
       <div class="products">
-        <ais-stats>
+        <AisStats>
           <template slot-scope="{ nbHits, query }">
             <h1 data-cy="algolia_search-title">
               <span v-if="nbHits === 0"><small>No Products Found</small></span>
               <span v-else><small>Search results for:</small> {{ query }}</span>
             </h1>
           </template>
-        </ais-stats>
-          <ais-hits
-          :class-names="{ 'ais-Hits-item': 'override_Hits-item' }"
-        >
+        </AisStats>
+        <AisHits :class-names="{ 'ais-Hits-item': 'override_Hits-item' }">
           <div slot="item" slot-scope="{ item }">
             <LazyHydrate when-idle>
               <SfProductCard
-                data-cy="category-product-card"
                 :key="item.objectID"
+                data-cy="category-product-card"
                 :title="item.name"
                 :image="item.image"
                 :max-rating="5"
-                :isOnWishlist="false"
+                :is-on-wishlist="false"
                 class="products__product-card"
               />
             </LazyHydrate>
           </div>
-        </ais-hits>
-        <ais-pagination />
+        </AisHits>
+        <AisPagination />
       </div>
     </div>
     <SfSidebar
@@ -120,49 +116,38 @@
             test
           </li>
         </ul> -->
-        <ais-refinement-list attributes="brand" />
+        <AisRefinementList attributes="brand" />
       </template>
     </SfSidebar>
-  </ais-instant-search-ssr>
+  </AisInstantSearchSsr>
 </template>
 
 <script>
 import {
   SfSidebar,
   SfButton,
-  SfList,
   SfIcon,
   SfHeading,
-  SfMenuItem,
-  SfProductCard,
-  SfProductCardHorizontal,
-  SfPagination,
-  SfAccordion,
-  SfSelect,
-  SfBreadcrumbs,
-  SfLoader,
-  SfNotification,
-} from '@storefront-ui/vue';
+  SfProductCard
+} from "@storefront-ui/vue";
 import {
   AisInstantSearchSsr,
   AisHits,
   AisSortBy,
-  AisHighlight,
   AisSearchBox,
   AisPagination,
-  AisSnippet,
   AisStats,
   AisRefinementList,
-  createServerRootMixin,
-} from 'vue-instantsearch'
+  createServerRootMixin
+} from "vue-instantsearch";
 
 // Libraries
 import LazyHydrate from "vue-lazy-hydration";
-import { useUiState } from '~/composables';
+import { useUiState } from "~/composables";
 import algoliasearch from "algoliasearch/lite";
 import "instantsearch.css/themes/algolia-min.css";
 
-const indexName = 'instant_search'
+const indexName = "instant_search";
 const searchClient = algoliasearch(
   "latency",
   "6be0576ff61c053d5f9a3225e2a90f76"
@@ -171,10 +156,9 @@ const searchClient = algoliasearch(
 // remove indexName
 // Props to: https://code.luasoftware.com/tutorials/algolia/setup-algolia-instantsearch-on-nuxt-with-query-url/
 function writeState(routeState) {
-  if (indexName in routeState)
-    routeState = routeState[indexName]
+  if (indexName in routeState) routeState = routeState[indexName];
 
-  return routeState
+  return routeState;
 }
 
 // restore indexName
@@ -182,8 +166,8 @@ function writeState(routeState) {
 function readState(routeState) {
   routeState = {
     [indexName]: routeState
-  }
-  return routeState
+  };
+  return routeState;
 }
 
 function nuxtRouter(vueRouter) {
@@ -196,16 +180,16 @@ function nuxtRouter(vueRouter) {
         return;
       }
       vueRouter.push({
-        query: writeState(routeState),
+        query: writeState(routeState)
       });
     },
     createURL(routeState) {
       return vueRouter.resolve({
-        query: writeState(routeState),
+        query: writeState(routeState)
       }).href;
     },
     onUpdate(cb) {
-      if (typeof window === 'undefined') return;
+      if (typeof window === "undefined") return;
 
       this._onPopState = event => {
         const routeState = event.state;
@@ -215,16 +199,15 @@ function nuxtRouter(vueRouter) {
           cb(routeState);
         }
       };
-      window.addEventListener('popstate', this._onPopState);
+      window.addEventListener("popstate", this._onPopState);
     },
     dispose() {
-      if (typeof window === 'undefined') return;
+      if (typeof window === "undefined") return;
 
-      window.removeEventListener('popstate', this._onPopState);
-    },
+      window.removeEventListener("popstate", this._onPopState);
+    }
   };
 }
-
 
 export default {
   serverPrefetch() {
@@ -232,62 +215,52 @@ export default {
       this.$ssrContext.nuxt.algoliaState = algoliaState;
     });
   },
-  beforeMount() {
-    const results = this.$nuxt.context.nuxtState.algoliaState || window.__NUXT__.algoliaState;
-    this.instantsearch.hydrate(results);
+  components: {
+    AisInstantSearchSsr,
+    AisHits,
+    AisSearchBox,
+    AisPagination,
+    AisSortBy,
+    AisStats,
+    AisRefinementList,
+    SfSidebar,
+    SfButton,
+    SfIcon,
+    SfHeading,
+    SfProductCard,
+    LazyHydrate
+  },
+  provide() {
+    return {
+      $_ais_ssrInstantSearchInstance: this.instantsearch
+    };
+  },
+  setup() {
+    const uiState = useUiState();
+
+    return {
+      AisSortBy,
+      AisRefinementList,
+      ...uiState
+    };
   },
   data() {
     const mixin = createServerRootMixin({
       searchClient,
       indexName,
       routing: {
-        router: nuxtRouter(this.$router),
+        router: nuxtRouter(this.$router)
       }
-    })
+    });
     return {
-      ...mixin.data(),
-    };     
-  },
-  provide() {
-    return {
-      $_ais_ssrInstantSearchInstance: this.instantsearch,
+      ...mixin.data()
     };
   },
-  setup(_, context) {
-    const uiState = useUiState();
-
-    return {
-      AisSortBy,
-      AisRefinementList,
-      ...uiState,
-    };
-  },
-  components: {
-    AisInstantSearchSsr,
-    AisHits,
-    AisHighlight,
-    AisSearchBox,
-    AisPagination,
-    AisSnippet,
-    AisSortBy,
-    AisStats,
-    AisRefinementList,
-    SfSidebar,
-    SfButton,
-    SfList,
-    SfIcon,
-    SfHeading,
-    SfMenuItem,
-    SfProductCard,
-    SfProductCardHorizontal,
-    SfPagination,
-    SfAccordion,
-    SfSelect,
-    SfBreadcrumbs,
-    SfLoader,
-    SfNotification,
-    LazyHydrate,
-  },
+  beforeMount() {
+    const results =
+      this.$nuxt.context.nuxtState.algoliaState || window.__NUXT__.algoliaState;
+    this.instantsearch.hydrate(results);
+  }
 };
 </script>
 

@@ -7,7 +7,7 @@
 
 <script>
 export default {
-  name: "BasicLayout"
+  name: "BasicLayout",
 };
 </script>
 
